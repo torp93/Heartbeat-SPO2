@@ -1,0 +1,109 @@
+#include <Wire.h> // Inkluderer Wire-biblioteket
+#include "MAX30100_PulseOximeter.h" // Inkluderer Max30100_PulseOximeter-biblioteket
+#include "Adafruit_GFX.h" // Inkluderer Adafruit GFX-biblioteket
+#include "OakOLED.h" // Inkluderer OakOLED-biblioteket
+
+#define REPORTING_PERIOD_MS     1000 // Definer REPORTING_PERIOD_MS som 1000
+
+// Opprett et OLED-objekt
+OakOLED oled;
+
+// Opprett et bitmap-bilde for et hjerte
+const unsigned char bitmap[] PROGMEM = 
+{
+0x00, 0x00, 0x00, 0x00, 0x01, 0x80, 0x18, 0x00, 0x0f, 0xe0, 0x7f, 0x00, 0x3f, 0xf9, 0xff, 0xc0,
+0x7f, 0xf9, 0xff, 0xc0, 0x7f, 0xff, 0xff, 0xe0, 0x7f, 0xff, 0xff, 0xe0, 0xff, 0xff, 0xff, 0xf0,
+0xff, 0xf7, 0xff, 0xf0, 0xff, 0xe7, 0xff, 0xf0, 0xff, 0xe7, 0xff, 0xf0, 0x7f, 0xdb, 0xff, 0xe0,
+0x7f, 0x9b, 0xff, 0xe0, 0x00, 0x3b, 0xc0, 0x00, 0x3f, 0xf9, 0x9f, 0xc0, 0x3f, 0xfd, 0xbf, 0xc0,
+0x1f, 0xfd, 0xbf, 0x80, 0x0f, 0xfd, 0x7f, 0x00, 0x07, 0xfe, 0x7e, 0x00, 0x03, 0xfe, 0xfc, 0x00,
+0x01, 0xff, 0xf8, 0x00, 0x00, 0xff, 0xf0, 0x00, 0x00, 0x7f, 0xe0, 0x00, 0x00, 0x3f, 0xc0, 0x00,
+0x00, 0x0f, 0x00, 0x00, 0x00, 0x06, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+};
+
+// Opprett et PulseOximeter-objekt
+PulseOximeter pox;
+
+// Opprett et LEDLight-objekt på port 2
+int ledPin = 2;
+
+// Tid da den siste pulsen ble oppdaget
+uint32_t tsLastReport = 0;
+
+// Callback-rutine som blir utført når et puls blir oppdaget
+void onBeatDetected() {
+//Serial.println(""); //Hjerteslag fjernet 
+  digitalWrite(ledPin, !digitalRead(ledPin)); // Be led om å sette den i motsatt verdi enn den er nå
+  oled.drawBitmap(60, 20, bitmap, 28, 28, 1);
+  oled.display();
+}
+
+void setup() {
+  Serial.begin(9600);
+  pinMode(ledPin, OUTPUT);
+
+  Serial.println("Initierer pulsoximeter...");
+
+  oled.begin();  // Initialiser oled-objektet
+  oled.clearDisplay();
+  oled.setTextSize(1);
+  oled.setTextColor(1);
+  oled.setCursor(0, 0);
+
+  oled.println("Initierer pulsoximeter...");
+  oled.display();
+
+  // Initialiser sensor
+  if (!pox.begin()) {
+    Serial.println("FEILET");
+
+    oled.clearDisplay();
+    oled.setTextSize(1);
+    oled.setTextColor(1);
+    oled.setCursor(0, 0);
+    oled.println("FEILET");
+    oled.display();
+
+    for (;;);
+  } else {
+    Serial.println("LYKKES");
+    oled.clearDisplay();
+    oled.setTextSize(1);
+    oled.setTextColor(1);
+    oled.setCursor(0, 0);
+    oled.println("LYKKES");
+    oled.display();
+
+    // Konfigurer sensor til å bruke 7.6mA for LED-drive
+    pox.setIRLedCurrent(MAX30100_LED_CURR_7_6MA);
+    // Registrer en callback-rutine
+    pox.setOnBeatDetectedCallback(onBeatDetected);
+  }
+}
+
+void loop() {
+  // Les fra sensoren
+  pox.update();
+  // Hent oppdaterte hjertefrekvens- og SpO2-nivåer
+  if (millis() - tsLastReport > REPORTING_PERIOD_MS) {
+    Serial.print(pox.getHeartRate());
+    Serial.print(",");
+    Serial.print(pox.getSpO2());
+    Serial.println("%");
+
+    oled.clearDisplay();
+    oled.setTextSize(1);
+    oled.setTextColor(1);
+    oled.setCursor(0, 0);
+    oled.println("Hjertefrekvens:");
+    oled.setCursor(0, 10);
+    oled.print(pox.getHeartRate());
+    oled.print(" bpm");
+    oled.setCursor(0, 20);
+    oled.println("SpO2:");
+    oled.setCursor(0, 30);
+    oled.print(pox.getSpO2());
+    oled.print(" %");
+    oled.display();
+    tsLastReport = millis();
+    }
+    }
