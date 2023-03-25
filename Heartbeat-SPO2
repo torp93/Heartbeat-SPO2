@@ -1,6 +1,5 @@
 #include <Wire.h> // Inkluderer Wire-biblioteket
 #include "MAX30100_PulseOximeter.h" // Inkluderer Max30100_PulseOximeter-biblioteket
-#include "Adafruit_GFX.h" // Inkluderer Adafruit GFX-biblioteket
 #include "OakOLED.h" // Inkluderer OakOLED-biblioteket
 
 #define REPORTING_PERIOD_MS     1000 // Definer REPORTING_PERIOD_MS som 1000
@@ -23,23 +22,17 @@ const unsigned char bitmap[] PROGMEM =
 // Opprett et PulseOximeter-objekt
 PulseOximeter pox;
 
-// Opprett et LEDLight-objekt på port 2
-int ledPin = 2;
-
 // Tid da den siste pulsen ble oppdaget
 uint32_t tsLastReport = 0;
 
 // Callback-rutine som blir utført når et puls blir oppdaget
 void onBeatDetected() {
-//Serial.println(""); //Hjerteslag fjernet 
-  digitalWrite(ledPin, !digitalRead(ledPin)); // Be led om å sette den i motsatt verdi enn den er nå
   oled.drawBitmap(60, 20, bitmap, 28, 28, 1);
   oled.display();
 }
 
 void setup() {
   Serial.begin(9600);
-  pinMode(ledPin, OUTPUT);
 
   Serial.println("Initierer pulsoximeter...");
 
